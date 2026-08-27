@@ -59,8 +59,8 @@ export default async function ReviewPage() {
     );
   }
 
-  const row = rows?.[0] as Record<string, unknown> | undefined;
-
+  const row = rows?.[0] as unknown as Record<string, unknown> | undefined;
+  
   if (!row) {
     return (
       <main>
