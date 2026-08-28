@@ -136,6 +136,11 @@ export default function ReviewDesk({ ticket, pending, clearedToday }: Props) {
 
   const shown = editing ? draftFindings : findings;
 
+  const handleLogout = async () => {
+    await fetch("/api/auth", { method: "DELETE" });
+    window.location.href = "/login";
+  };
+
   return (
     <>
       <header className="topbar">
@@ -144,6 +149,20 @@ export default function ReviewDesk({ ticket, pending, clearedToday }: Props) {
             redaction desk <span>/ support tickets</span>
           </h1>
           <div className="topbar-spacer" />
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              fontSize: "12px",
+              textDecoration: "underline",
+              padding: 0,
+            }}
+          >
+            Sign out
+          </button>
           <div className="counts">
             <div className="count">
               <span className="count-value">{pending}</span>

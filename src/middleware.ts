@@ -1,42 +1,20 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Refreshes the Supabase session cookie and blocks unauthenticated access to
- * /review. Reviewer-allowlist enforcement happens in getReviewer(); this is
- * the cheap first gate.
+ * Simple auth check: if accessing /review without the auth cookie, redirect to /login.
  */
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/review")) {
+    const isLoggedIn = request.cookies.get("reviewerAuth")?.value === "true";
 
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (list: { name: string; value: string; options?: Record<string, unknown> }[]) => {
-          list.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          list.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && request.nextUrl.pathname.startsWith("/review")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    if (!isLoggedIn) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

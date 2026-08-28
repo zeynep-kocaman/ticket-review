@@ -3,37 +3,33 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
-
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleLogin() {
-    setError(null);
-    setIsLoading(true);
+    const correctPassword = process.env.NEXT_PUBLIC_REVIEW_PASSWORD;
 
-    try {
-      const { data, error: authError } = await createClient().auth.signInWithPassword({
-        email: username,
-        password,
+    if (!correctPassword) {
+      setError("Password not configured. Contact the administrator.");
+      return;
+    }
+
+    if (password === correctPassword) {
+      // Set auth cookie via a server action
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auth: true }),
       });
 
-      if (authError) {
-        setError(authError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      if (data.session) {
+      if (response.ok) {
         router.push("/review");
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Try again.");
-      setIsLoading(false);
+    } else {
+      setError("Incorrect password. Try again.");
+      setPassword("");
     }
   }
 
@@ -42,23 +38,7 @@ export default function LoginPage() {
       <div className="shell">
         <div className="centered">
           <span className="eyebrow">Redaction desk</span>
-          <h2>Sign in to review tickets.</h2>
-
-          <p>Enter your credentials to access the review queue.</p>
-
-          <input
-            className="field"
-            type="email"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleLogin();
-            }}
-            placeholder="Email"
-            autoComplete="email"
-            aria-label="Email"
-            disabled={isLoading}
-          />
+          <h2>Enter password to review tickets.</h2>
 
           <input
             className="field"
@@ -69,19 +49,18 @@ export default function LoginPage() {
               if (event.key === "Enter") handleLogin();
             }}
             placeholder="Password"
-            autoComplete="current-password"
+            autoComplete="off"
             aria-label="Password"
-            disabled={isLoading}
-            style={{ marginTop: "8px" }}
+            autoFocus
           />
 
           <button
             className="btn btn-clear"
             onClick={handleLogin}
-            disabled={isLoading || !username || !password}
+            disabled={!password}
             style={{ marginTop: "12px" }}
           >
-            {isLoading ? "Signing in…" : "Sign in"}
+            Sign in
           </button>
 
           {error && (

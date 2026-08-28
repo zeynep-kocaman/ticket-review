@@ -1,20 +1,15 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { allowedEmailDomains } from "@/lib/config";
-
 export type Reviewer = { id: string; email: string };
 
 /**
- * Returns the current reviewer, or null if no valid session exists.
- * For password auth, we skip the allowlist check since accounts
- * are created explicitly in Supabase Auth.
+ * For basic password auth, we return a dummy reviewer object.
+ * The actual auth happens on the client via localStorage check.
+ * This is a simple setup — for production, use proper session management.
  */
 export async function getReviewer(): Promise<Reviewer | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user?.email) return null;
-
-  return { id: data.user.id, email: data.user.email };
+  // In a server context, we can't check localStorage.
+  // The middleware handles the redirect if not logged in.
+  // This always returns a valid reviewer to skip auth on server-side page loads.
+  return { id: "reviewer", email: "reviewer@enpal.local" };
 }
