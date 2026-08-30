@@ -4,7 +4,7 @@
  * Nothing else in the app hardcodes a column name.
  * ─────────────────────────────────────────────────────────────────────────────
  */
----------------
+
 
 
 export const TABLE = "ticket_data";
