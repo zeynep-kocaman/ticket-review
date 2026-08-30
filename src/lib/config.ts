@@ -4,59 +4,43 @@
  * Nothing else in the app hardcodes a column name.
  * ─────────────────────────────────────────────────────────────────────────────
  */
+---------------
 
-export const TABLE = "tickets";
+
+export const TABLE = "ticket_data";
 
 export const COL = {
-  /** Primary key. */
-  id: "id",
+  /** Conversation identifier. */
+  id: "conv_id",
 
-  /** The redacted ticket body a reviewer reads and may edit. */
-  text: "ticket_text",
-
-  /** Snapshot of `text` taken before the first manual edit. Added by schema.sql. */
-  originalText: "original_text",
-
-  /** Intercom conversation id, shown for traceability. Set to null if absent. */
-  externalId: "intercom_conversation_id",
-
-  /** Used to order the queue oldest-first. */
-  createdAt: "created_at",
-
-  // ── Columns added by supabase/schema.sql ──
-  reviewStatus: "review_status",
-  reviewedBy: "reviewed_by",
-  reviewedAt: "reviewed_at",
-  reviewerNotes: "reviewer_notes",
+  /** Ticket message displayed in the interface. */
+  text: "message",
 } as const;
 
 /**
- * Extra columns to display read-only above the ticket body, as
- * [column, label] pairs. Set to [] if you don't want any.
+ * No additional context columns are available in ticket_data.
  */
-export const CONTEXT_COLUMNS: ReadonlyArray<readonly [string, string]> = [
-  ["subject", "Subject"],
-  ["source", "Source"],
-];
+export const CONTEXT_COLUMNS: ReadonlyArray<readonly [string, string]> = [];
 
-export const STATUS = {
-  pending: "pending_review",
-  approved: "approved",
-  edited: "edited",
-  rejected: "rejected",
-} as const;
-
-export type ReviewStatus = (typeof STATUS)[keyof typeof STATUS];
-
-/** Statuses your downstream AI pipeline is allowed to read. */
-export const CLEARED_STATUSES: ReviewStatus[] = [STATUS.approved, STATUS.edited];
+/**
+ * The interface is read-only for now.
+ *
+ * The UI should use this to keep all action buttons disabled
+ * and prevent editing, approving, rejecting, inserting, updating,
+ * or deleting records.
+ */
+export const READ_ONLY = true;
 
 export const allowedEmailDomains = (): string[] =>
   (process.env.ALLOWED_EMAIL_DOMAINS ?? "")
     .split(",")
-    .map((d) => d.trim().toLowerCase())
+    .map((domain) => domain.trim().toLowerCase())
     .filter(Boolean);
 
 export const siteUrl = (): string =>
   process.env.SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
+
+
