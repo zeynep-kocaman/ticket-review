@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { getReviewer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { CLEARED_STATUSES, COL, CONTEXT_COLUMNS, STATUS, TABLE } from "@/lib/config";
+import { COL, TABLE } from "@/lib/config";
 import ReviewDesk, { type TicketView } from "./ReviewDesk";
 
 // Ticket bodies are unverified personal data — never prerender or cache.
@@ -15,43 +15,21 @@ export default async function ReviewPage() {
 
   const supabase = await createClient();
 
-  const selected = [
-    COL.id,
-    COL.text,
-    COL.createdAt,
-    ...(COL.externalId ? [COL.externalId] : []),
-    ...CONTEXT_COLUMNS.map(([column]) => column),
-  ].join(", ");
-
-  const [{ data: rows, error }, { count: pending }, { count: clearedToday }] =
-    await Promise.all([
-      supabase
-        .from(TABLE)
-        .select(selected)
-        .eq(COL.reviewStatus, STATUS.pending)
-        .order(COL.createdAt, { ascending: true })
-        .limit(1),
-      supabase
-        .from(TABLE)
-        .select(COL.id, { count: "exact", head: true })
-        .eq(COL.reviewStatus, STATUS.pending),
-      supabase
-        .from(TABLE)
-        .select(COL.id, { count: "exact", head: true })
-        .in(COL.reviewStatus, CLEARED_STATUSES)
-        .gte(COL.reviewedAt, new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
-    ]);
+  const { data: rows, error } = await supabase
+    .from(TABLE)
+    .select(`${COL.id}, ${COL.text}`)
+    .limit(1);
 
   if (error) {
     return (
       <main>
         <div className="shell">
           <div className="centered">
-            <span className="eyebrow">Could not load the queue</span>
+            <span className="eyebrow">Could not load tickets</span>
             <h2>{error.message}</h2>
             <p>
               Check that the column names in <code>src/lib/config.ts</code> match your
-              table and that <code>supabase/schema.sql</code> has been run.
+              table.
             </p>
           </div>
         </div>
@@ -59,19 +37,16 @@ export default async function ReviewPage() {
     );
   }
 
-  const row = rows?.[0] as unknown as Record<string, unknown> | undefined;
-  
+  const row = rows?.[0] as Record<string, unknown> | undefined;
+
   if (!row) {
     return (
       <main>
         <div className="shell">
           <div className="centered">
             <span className="eyebrow">Queue empty</span>
-            <h2>Nothing waiting for review.</h2>
-            <p>
-              {clearedToday ?? 0} ticket{clearedToday === 1 ? "" : "s"} cleared today.
-              New tickets appear here as the Intercom sync brings them in.
-            </p>
+            <h2>No tickets to display.</h2>
+            <p>New tickets will appear here as they are added to ticket_data.</p>
           </div>
         </div>
       </main>
@@ -81,18 +56,10 @@ export default async function ReviewPage() {
   const ticket: TicketView = {
     id: String(row[COL.id]),
     text: (row[COL.text] as string) ?? "",
-    externalId: COL.externalId ? ((row[COL.externalId] as string) ?? null) : null,
-    createdAt: (row[COL.createdAt] as string) ?? null,
-    context: CONTEXT_COLUMNS.filter(([column]) => row[column] != null).map(
-      ([column, label]) => ({ label, value: String(row[column]) }),
-    ),
+    externalId: null,
+    createdAt: null,
+    context: [],
   };
 
-  return (
-    <ReviewDesk
-      ticket={ticket}
-      pending={pending ?? 0}
-      clearedToday={clearedToday ?? 0}
-    />
-  );
+  return <ReviewDesk ticket={ticket} pending={0} clearedToday={0} />;
 }
